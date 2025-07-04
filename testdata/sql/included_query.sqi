@@ -1,0 +1,6 @@
+-- This file is included by preprocessor_test.sql
+INSERT INTO TABLE_NAME (name, email) VALUES ('Preprocessor User', 'preproc@example.com');
+go
+
+SELECT 'Included query executed' as status;
+go

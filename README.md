@@ -1,4 +1,4 @@
-# sqlpp - SQL Preprocessor and Executor
+# sqlpp - SQL Preprocessor and Executor written in Golang
 
 A modern, feature-rich SQL preprocessor and executor written in Go that supports multiple database backends, advanced preprocessing capabilities, and schema introspection.
 
@@ -39,7 +39,7 @@ A modern, feature-rich SQL preprocessor and executor written in Go that supports
 ### From Source
 ```bash
 git clone <repository-url>
-cd sqlpp
+cd gosqlpp
 go build -o sqlpp
 ```
 

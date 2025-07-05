@@ -35,27 +35,27 @@ func DefaultConfig() *Config {
 // LoadConfig loads configuration from .sqlppconfig file in the current directory
 func LoadConfig() (*Config, error) {
 	config := DefaultConfig()
-	
+
 	configPath := ".sqlppconfig"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// No config file exists, return default config
 		return config, nil
 	}
-	
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
-	
+
 	if err := yaml.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
-	
+
 	// Validate configuration
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
-	
+
 	return config, nil
 }
 
@@ -65,12 +65,12 @@ func (c *Config) SaveConfig() error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	
+
 	configPath := ".sqlppconfig"
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -83,16 +83,16 @@ func (c *Config) Validate() error {
 		"yaml":  true,
 		"csv":   true,
 	}
-	
+
 	if !validOutputs[c.Output] {
 		return fmt.Errorf("invalid output format '%s', must be one of: table, json, yaml, csv", c.Output)
 	}
-	
+
 	// Validate connections
 	if len(c.Connections) == 0 {
 		return fmt.Errorf("no database connections defined")
 	}
-	
+
 	for name, conn := range c.Connections {
 		if conn.Driver == "" {
 			return fmt.Errorf("connection '%s' missing driver", name)
@@ -101,7 +101,7 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("connection '%s' missing connection-string", name)
 		}
 	}
-	
+
 	// Validate default connection
 	if c.DefaultConnection != "" {
 		if _, exists := c.Connections[c.DefaultConnection]; !exists {
@@ -116,7 +116,7 @@ func (c *Config) Validate() error {
 	} else if len(c.Connections) > 1 {
 		return fmt.Errorf("multiple connections defined but no default-connection specified")
 	}
-	
+
 	return nil
 }
 
@@ -125,16 +125,25 @@ func (c *Config) GetConnection(name string) (Connection, error) {
 	if name == "" {
 		name = c.DefaultConnection
 	}
-	
+
 	conn, exists := c.Connections[name]
 	if !exists {
 		return Connection{}, fmt.Errorf("connection '%s' not found", name)
 	}
-	
+
 	return conn, nil
 }
 
 // GetConfigPath returns the path to the configuration file
 func GetConfigPath() string {
 	return filepath.Join(".", ".sqlppconfig")
+}
+
+// GetConnectionNames returns a slice of all connection names
+func (c *Config) GetConnectionNames() []string {
+	names := make([]string, 0, len(c.Connections))
+	for name := range c.Connections {
+		names = append(names, name)
+	}
+	return names
 }

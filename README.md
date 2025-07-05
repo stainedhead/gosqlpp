@@ -76,6 +76,14 @@ connections:
 
 ### 2. Basic Usage
 ```bash
+# Show version information
+sqlpp --version
+sqlpp -v
+
+# List available database connections
+sqlpp --list-connections
+sqlpp -l
+
 # Execute a single SQL file
 sqlpp script.sql
 
@@ -104,9 +112,11 @@ Flags:
   -f, --file string         SQL file to process
       --force               Continue execution even on errors
   -h, --help                Help for sqlpp
+  -l, --list-connections    List available database connections and exit
   -n, --newer string        Process only files newer than date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
   -o, --output string       Output format (table, json, yaml, csv)
       --stdin               Read SQL commands from standard input
+  -v, --version             Show version information and exit
 ```
 
 ## Preprocessing Directives

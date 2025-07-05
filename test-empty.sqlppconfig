@@ -1,0 +1,3 @@
+end-on-error: false
+output: "table"
+connections: {}

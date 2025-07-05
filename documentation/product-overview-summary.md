@@ -90,6 +90,10 @@ There will also be a set of commandline flags that the user set to control proce
 
 --newer or -n which limits a --directory processing to only those which are newer than the datetime passed as value which follows the flag.
 
+--list-connections or -l returns the connections available in the configuration file. The default connection should be labelled as default if one is set.
+
+--version or -v which shows the version of the application.
+
 --force overrides the default behavior of errors stopping the processing of the application when errors are reported by the 
 
 

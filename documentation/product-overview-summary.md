@@ -108,16 +108,12 @@ statements which are executed in the the database may return information on the 
 
 the file may have one or more statements and each statement will be set to the database in the order they are found.  when the final statement is processed, the file will be closed, and processing of the file is completed.
 
-while a file is being processed, it would be helpful to have a progress bar shown that gives status on the progress within the file based on line number being read or processed.
-
 C. Process directories or sets of files
 When the --directory or --newer flags are provided the application is being asked to process a series of files.  --directory is used to provide the path to the directory to be processed.  when used the default behavior is to read all the .sql files and process them in order.
 
 if errors are found within any file, the stop-on-error configuration value is used to control if other files are processed or not.  when stop-on-error is true, the processing is stopped, when false the next file is processed in order.
 
 when the newer flag is provided on the commandline, the files processes within the directory are only those which have been updated since the value passed with the flag converted to a datetime value.  values which are passed without time will default to midnight of the date, times passed should be used as a localized value.  files with datetimes before the value are skipped from being processed.
-
-while a directory is being processed, it would be helpful to have a progress bar presented with status on the file which is being processed and progress within the file based on line number.
 
 D. #define, #include, included line tracking, included error reporting
 
@@ -160,6 +156,4 @@ some examples:
 @schema-functions returns functions
 
 if any of these types are not supported by the database a message is returned saying they are not supported.  the data return should be the data supported by the database engine and driver.
-
-while a @name command is being processed, it would be helpful to have a progress bar shown that gives status within the command based on number objects being read or processed.
 

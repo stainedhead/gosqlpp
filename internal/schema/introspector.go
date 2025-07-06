@@ -8,7 +8,6 @@ import (
 	"gosqlpp/internal/output"
 
 	"github.com/jimsmart/schema"
-	"github.com/schollz/progressbar/v3"
 )
 
 // Introspector handles database schema introspection
@@ -98,19 +97,9 @@ func (i *Introspector) processSchemaTables(filter string) error {
 		return nil
 	}
 
-	// Create progress bar
-	bar := progressbar.NewOptions(
-		len(tables),
-		progressbar.OptionSetDescription("Retrieving table info"),
-		progressbar.OptionSetWidth(50),
-		progressbar.OptionShowCount(),
-	)
-
 	// Get detailed table information
 	var tableInfo []map[string]interface{}
 	for _, tableName := range tables {
-		bar.Add(1)
-
 		info := map[string]interface{}{
 			"table_name": tableName,
 			"type":       "TABLE",
@@ -132,9 +121,6 @@ func (i *Introspector) processSchemaTables(filter string) error {
 
 		tableInfo = append(tableInfo, info)
 	}
-
-	bar.Finish()
-	fmt.Println()
 
 	// Format and display results
 	return i.formatSchemaResults(tableInfo)
@@ -169,19 +155,9 @@ func (i *Introspector) processSchemaViews(filter string) error {
 		return nil
 	}
 
-	// Create progress bar
-	bar := progressbar.NewOptions(
-		len(views),
-		progressbar.OptionSetDescription("Retrieving view info"),
-		progressbar.OptionSetWidth(50),
-		progressbar.OptionShowCount(),
-	)
-
 	// Get detailed view information
 	var viewInfo []map[string]interface{}
 	for _, viewName := range views {
-		bar.Add(1)
-
 		info := map[string]interface{}{
 			"view_name": viewName,
 			"type":      "VIEW",
@@ -203,9 +179,6 @@ func (i *Introspector) processSchemaViews(filter string) error {
 
 		viewInfo = append(viewInfo, info)
 	}
-
-	bar.Finish()
-	fmt.Println()
 
 	// Format and display results
 	return i.formatSchemaResults(viewInfo)
@@ -234,19 +207,9 @@ func (i *Introspector) processSchemaProcedures(filter string) error {
 		return nil
 	}
 
-	// Create progress bar
-	bar := progressbar.NewOptions(
-		len(procedures),
-		progressbar.OptionSetDescription("Retrieving procedure info"),
-		progressbar.OptionSetWidth(50),
-		progressbar.OptionShowCount(),
-	)
-
 	// Get detailed procedure information
 	var procInfo []map[string]interface{}
 	for _, procName := range procedures {
-		bar.Add(1)
-
 		info := map[string]interface{}{
 			"procedure_name": procName,
 			"type":           "PROCEDURE",
@@ -254,9 +217,6 @@ func (i *Introspector) processSchemaProcedures(filter string) error {
 
 		procInfo = append(procInfo, info)
 	}
-
-	bar.Finish()
-	fmt.Println()
 
 	// Format and display results
 	return i.formatSchemaResults(procInfo)
@@ -285,19 +245,9 @@ func (i *Introspector) processSchemaFunctions(filter string) error {
 		return nil
 	}
 
-	// Create progress bar
-	bar := progressbar.NewOptions(
-		len(functions),
-		progressbar.OptionSetDescription("Retrieving function info"),
-		progressbar.OptionSetWidth(50),
-		progressbar.OptionShowCount(),
-	)
-
 	// Get detailed function information
 	var funcInfo []map[string]interface{}
 	for _, funcName := range functions {
-		bar.Add(1)
-
 		info := map[string]interface{}{
 			"function_name": funcName,
 			"type":          "FUNCTION",
@@ -305,9 +255,6 @@ func (i *Introspector) processSchemaFunctions(filter string) error {
 
 		funcInfo = append(funcInfo, info)
 	}
-
-	bar.Finish()
-	fmt.Println()
 
 	// Format and display results
 	return i.formatSchemaResults(funcInfo)
@@ -444,19 +391,9 @@ func (i *Introspector) processDrivers(filter string) error {
 		return nil
 	}
 
-	// Create progress bar
-	bar := progressbar.NewOptions(
-		len(drivers),
-		progressbar.OptionSetDescription("Retrieving driver info"),
-		progressbar.OptionSetWidth(50),
-		progressbar.OptionShowCount(),
-	)
-
 	// Get detailed driver information
 	var driverInfo []map[string]interface{}
 	for _, driverName := range drivers {
-		bar.Add(1)
-
 		info := map[string]interface{}{
 			"driver_name": driverName,
 			"type":        "DRIVER",
@@ -484,9 +421,6 @@ func (i *Introspector) processDrivers(filter string) error {
 
 		driverInfo = append(driverInfo, info)
 	}
-
-	bar.Finish()
-	fmt.Println()
 
 	// Format and display results
 	return i.formatSchemaResults(driverInfo)

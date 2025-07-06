@@ -30,7 +30,6 @@ A modern, feature-rich SQL preprocessor and executor written in Go that supports
 - **Multiple Output Formats** - Table, JSON, YAML, CSV
 - **Batch Processing** - Process entire directories of SQL files
 - **Date Filtering** - Process only files newer than specified date
-- **Progress Tracking** - Real-time progress bars for long operations
 - **Error Handling** - Configurable stop-on-error behavior
 - **Standard Input** - Support for piped input and interactive use
 

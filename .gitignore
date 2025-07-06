@@ -1,6 +1,6 @@
 # Binaries for programs and plugins
-sqlpp
-gosqlpp
+./sqlpp
+./gosqlpp
 *.exe
 *.exe~
 *.dll
@@ -8,6 +8,7 @@ gosqlpp
 *.dylib
 gosqlpp-mcp-server
 .bin/
+.sqlppconfig 
 
 # Test binary, built with `go test -c`
 *.test

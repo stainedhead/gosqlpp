@@ -122,25 +122,34 @@ func runSqlpp(cmd *cobra.Command, args []string) error {
 
 	// List connections and exit if requested
 	if listConnections {
-		connections := cfg.GetConnectionNames()
-		if len(connections) == 0 {
+		connectionInfos := cfg.GetConnectionInfos()
+		if len(connectionInfos) == 0 {
 			fmt.Println("No connections configured.")
 			return nil
 		}
 
-		fmt.Println("Available connections:")
-		for _, connName := range connections {
-			prefix := "  - "
-			if connName == cfg.DefaultConnection {
-				prefix = "  * "
-			}
-			fmt.Printf("%s%s", prefix, connName)
-			if connName == cfg.DefaultConnection {
-				fmt.Printf(" (default)")
-			}
-			fmt.Println()
+		// Determine effective output format
+		effectiveOutputFormat := cfg.Output
+		if outputFormat != "" {
+			effectiveOutputFormat = outputFormat
 		}
-		return nil
+
+		// Create output formatter
+		formatter := output.NewFormatter(effectiveOutputFormat, os.Stdout)
+
+		// Format connection information as a table-like structure
+		var data []map[string]interface{}
+		for _, info := range connectionInfos {
+			row := map[string]interface{}{
+				"name":       info.Name,
+				"driver":     info.Driver,
+				"notes":      info.Notes,
+				"is_default": info.IsDefault,
+			}
+			data = append(data, row)
+		}
+
+		return formatter.FormatData(data)
 	}
 
 	// Determine input source

@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"strings"
 
+	"gosqlpp/internal/database"
+
 	"github.com/rodaine/table"
 	"gopkg.in/yaml.v3"
-	"gosqlpp/internal/database"
 )
 
 // Formatter handles different output formats
@@ -34,7 +35,7 @@ func (f *Formatter) FormatResult(result *database.ExecutionResult) error {
 		_, err := fmt.Fprintf(f.writer, "%s\n", database.FormatError(result))
 		return err
 	}
-	
+
 	// If no rows returned, just show the affected rows message
 	if len(result.Rows) == 0 {
 		message := database.FormatRowsAffected(result)
@@ -44,7 +45,7 @@ func (f *Formatter) FormatResult(result *database.ExecutionResult) error {
 		}
 		return nil
 	}
-	
+
 	// Format the result data based on the requested format
 	switch f.format {
 	case "table":
@@ -65,17 +66,17 @@ func (f *Formatter) formatTable(result *database.ExecutionResult) error {
 	if len(result.Rows) == 0 {
 		return nil
 	}
-	
+
 	// Convert column names to interface{} slice
 	headers := make([]interface{}, len(result.Columns))
 	for i, col := range result.Columns {
 		headers[i] = col
 	}
-	
+
 	// Create table with headers
 	tbl := table.New(headers...)
 	tbl.WithWriter(f.writer)
-	
+
 	// Add rows
 	for _, row := range result.Rows {
 		// Convert all values to strings for table display
@@ -85,12 +86,12 @@ func (f *Formatter) formatTable(result *database.ExecutionResult) error {
 		}
 		tbl.AddRow(stringRow...)
 	}
-	
+
 	tbl.Print()
-	
+
 	// Add row count
 	fmt.Fprintf(f.writer, "\n%s\n", database.FormatRowsAffected(result))
-	
+
 	return nil
 }
 
@@ -98,7 +99,7 @@ func (f *Formatter) formatTable(result *database.ExecutionResult) error {
 func (f *Formatter) formatJSON(result *database.ExecutionResult) error {
 	// Convert rows to array of objects
 	var records []map[string]interface{}
-	
+
 	for _, row := range result.Rows {
 		record := make(map[string]interface{})
 		for i, col := range result.Columns {
@@ -108,7 +109,7 @@ func (f *Formatter) formatJSON(result *database.ExecutionResult) error {
 		}
 		records = append(records, record)
 	}
-	
+
 	encoder := json.NewEncoder(f.writer)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(records)
@@ -118,7 +119,7 @@ func (f *Formatter) formatJSON(result *database.ExecutionResult) error {
 func (f *Formatter) formatYAML(result *database.ExecutionResult) error {
 	// Convert rows to array of objects
 	var records []map[string]interface{}
-	
+
 	for _, row := range result.Rows {
 		record := make(map[string]interface{})
 		for i, col := range result.Columns {
@@ -128,7 +129,7 @@ func (f *Formatter) formatYAML(result *database.ExecutionResult) error {
 		}
 		records = append(records, record)
 	}
-	
+
 	encoder := yaml.NewEncoder(f.writer)
 	defer encoder.Close()
 	return encoder.Encode(records)
@@ -138,12 +139,12 @@ func (f *Formatter) formatYAML(result *database.ExecutionResult) error {
 func (f *Formatter) formatCSV(result *database.ExecutionResult) error {
 	writer := csv.NewWriter(f.writer)
 	defer writer.Flush()
-	
+
 	// Write header
 	if err := writer.Write(result.Columns); err != nil {
 		return err
 	}
-	
+
 	// Write rows
 	for _, row := range result.Rows {
 		stringRow := make([]string, len(row))
@@ -154,7 +155,7 @@ func (f *Formatter) formatCSV(result *database.ExecutionResult) error {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -163,7 +164,7 @@ func formatValue(val interface{}) string {
 	if val == nil {
 		return "NULL"
 	}
-	
+
 	switch v := val.(type) {
 	case string:
 		return v
@@ -195,4 +196,105 @@ func IsFormatSupported(format string) bool {
 		}
 	}
 	return false
+}
+
+// FormatData formats generic data (slice of maps) using the specified format
+func (f *Formatter) FormatData(data []map[string]interface{}) error {
+	if len(data) == 0 {
+		_, err := fmt.Fprintf(f.writer, "No data to display\n")
+		return err
+	}
+
+	switch f.format {
+	case "table":
+		return f.formatDataAsTable(data)
+	case "json":
+		return f.formatDataAsJSON(data)
+	case "yaml":
+		return f.formatDataAsYAML(data)
+	case "csv":
+		return f.formatDataAsCSV(data)
+	default:
+		return fmt.Errorf("unsupported output format: %s", f.format)
+	}
+}
+
+// formatDataAsTable formats generic data as a table
+func (f *Formatter) formatDataAsTable(data []map[string]interface{}) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	// Extract headers from the first record
+	var headers []interface{}
+	for key := range data[0] {
+		headers = append(headers, key)
+	}
+
+	// Create table with headers
+	tbl := table.New(headers...)
+	tbl.WithWriter(f.writer)
+
+	// Add rows
+	for _, record := range data {
+		row := make([]interface{}, len(headers))
+		for i, header := range headers {
+			row[i] = formatValue(record[header.(string)])
+		}
+		tbl.AddRow(row...)
+	}
+
+	tbl.Print()
+	return nil
+}
+
+// formatDataAsJSON formats generic data as JSON
+func (f *Formatter) formatDataAsJSON(data []map[string]interface{}) error {
+	encoder := json.NewEncoder(f.writer)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(data)
+}
+
+// formatDataAsYAML formats generic data as YAML
+func (f *Formatter) formatDataAsYAML(data []map[string]interface{}) error {
+	encoder := yaml.NewEncoder(f.writer)
+	defer encoder.Close()
+	return encoder.Encode(data)
+}
+
+// formatDataAsCSV formats generic data as CSV
+func (f *Formatter) formatDataAsCSV(data []map[string]interface{}) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	writer := csv.NewWriter(f.writer)
+	defer writer.Flush()
+
+	// Extract headers from the first record
+	var headers []string
+	for key := range data[0] {
+		headers = append(headers, key)
+	}
+
+	// Write headers
+	if err := writer.Write(headers); err != nil {
+		return err
+	}
+
+	// Write data rows
+	for _, record := range data {
+		row := make([]string, len(headers))
+		for i, header := range headers {
+			value := record[header]
+			if value != nil {
+				row[i] = fmt.Sprintf("%v", value)
+			}
+		}
+		if err := writer.Write(row); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

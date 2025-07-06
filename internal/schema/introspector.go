@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jimsmart/schema"
-	"github.com/schollz/progressbar/v3"
 	"gosqlpp/internal/database"
 	"gosqlpp/internal/output"
+
+	"github.com/jimsmart/schema"
+	"github.com/schollz/progressbar/v3"
 )
 
 // Introspector handles database schema introspection
@@ -47,25 +48,24 @@ func (i *Introspector) ProcessSchemaCommand(command, filter string) error {
 // processSchemaAll processes @schema-all command
 func (i *Introspector) processSchemaAll(filter string) error {
 	fmt.Println("=== Database Schema Information ===")
-	
+
 	commands := []struct {
 		name    string
 		command string
 	}{
-		{"Available Drivers", "@drivers"},
 		{"Tables", "@schema-tables"},
 		{"Views", "@schema-views"},
 		{"Procedures", "@schema-procedures"},
 		{"Functions", "@schema-functions"},
 	}
-	
+
 	for _, cmd := range commands {
 		fmt.Printf("\n--- %s ---\n", cmd.name)
 		if err := i.ProcessSchemaCommand(cmd.command, filter); err != nil {
 			fmt.Printf("Error retrieving %s: %v\n", strings.ToLower(cmd.name), err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -75,7 +75,7 @@ func (i *Introspector) processSchemaTables(filter string) error {
 	if err != nil {
 		return fmt.Errorf("failed to retrieve table names: %w", err)
 	}
-	
+
 	// Convert [][2]string to []string (table names only)
 	var tables []string
 	for _, table := range tableNames {
@@ -87,17 +87,17 @@ func (i *Introspector) processSchemaTables(filter string) error {
 		}
 		tables = append(tables, tableName)
 	}
-	
+
 	// Filter tables if filter is provided
 	if filter != "" {
 		tables = filterNames(tables, filter)
 	}
-	
+
 	if len(tables) == 0 {
 		fmt.Println("No tables found")
 		return nil
 	}
-	
+
 	// Create progress bar
 	bar := progressbar.NewOptions(
 		len(tables),
@@ -105,17 +105,17 @@ func (i *Introspector) processSchemaTables(filter string) error {
 		progressbar.OptionSetWidth(50),
 		progressbar.OptionShowCount(),
 	)
-	
+
 	// Get detailed table information
 	var tableInfo []map[string]interface{}
 	for _, tableName := range tables {
 		bar.Add(1)
-		
+
 		info := map[string]interface{}{
 			"table_name": tableName,
 			"type":       "TABLE",
 		}
-		
+
 		// Get column information
 		columns, err := schema.ColumnTypes(i.connection.DB, "", tableName)
 		if err == nil {
@@ -129,13 +129,13 @@ func (i *Introspector) processSchemaTables(filter string) error {
 			info["column_count"] = "N/A"
 			info["columns"] = "Error retrieving columns"
 		}
-		
+
 		tableInfo = append(tableInfo, info)
 	}
-	
+
 	bar.Finish()
 	fmt.Println()
-	
+
 	// Format and display results
 	return i.formatSchemaResults(tableInfo)
 }
@@ -146,7 +146,7 @@ func (i *Introspector) processSchemaViews(filter string) error {
 	if err != nil {
 		return fmt.Errorf("failed to retrieve view names: %w", err)
 	}
-	
+
 	// Convert [][2]string to []string (view names only)
 	var views []string
 	for _, view := range viewNames {
@@ -158,17 +158,17 @@ func (i *Introspector) processSchemaViews(filter string) error {
 		}
 		views = append(views, viewName)
 	}
-	
+
 	// Filter views if filter is provided
 	if filter != "" {
 		views = filterNames(views, filter)
 	}
-	
+
 	if len(views) == 0 {
 		fmt.Println("No views found")
 		return nil
 	}
-	
+
 	// Create progress bar
 	bar := progressbar.NewOptions(
 		len(views),
@@ -176,17 +176,17 @@ func (i *Introspector) processSchemaViews(filter string) error {
 		progressbar.OptionSetWidth(50),
 		progressbar.OptionShowCount(),
 	)
-	
+
 	// Get detailed view information
 	var viewInfo []map[string]interface{}
 	for _, viewName := range views {
 		bar.Add(1)
-		
+
 		info := map[string]interface{}{
 			"view_name": viewName,
 			"type":      "VIEW",
 		}
-		
+
 		// Get column information
 		columns, err := schema.ColumnTypes(i.connection.DB, "", viewName)
 		if err == nil {
@@ -200,13 +200,13 @@ func (i *Introspector) processSchemaViews(filter string) error {
 			info["column_count"] = "N/A"
 			info["columns"] = "Error retrieving columns"
 		}
-		
+
 		viewInfo = append(viewInfo, info)
 	}
-	
+
 	bar.Finish()
 	fmt.Println()
-	
+
 	// Format and display results
 	return i.formatSchemaResults(viewInfo)
 }
@@ -218,22 +218,22 @@ func (i *Introspector) processSchemaProcedures(filter string) error {
 		fmt.Printf("Stored procedures are not supported by %s driver\n", i.connection.Driver)
 		return nil
 	}
-	
+
 	procedures, err := i.getStoredProcedures()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve stored procedures: %w", err)
 	}
-	
+
 	// Filter procedures if filter is provided
 	if filter != "" {
 		procedures = filterNames(procedures, filter)
 	}
-	
+
 	if len(procedures) == 0 {
 		fmt.Println("No stored procedures found")
 		return nil
 	}
-	
+
 	// Create progress bar
 	bar := progressbar.NewOptions(
 		len(procedures),
@@ -241,23 +241,23 @@ func (i *Introspector) processSchemaProcedures(filter string) error {
 		progressbar.OptionSetWidth(50),
 		progressbar.OptionShowCount(),
 	)
-	
+
 	// Get detailed procedure information
 	var procInfo []map[string]interface{}
 	for _, procName := range procedures {
 		bar.Add(1)
-		
+
 		info := map[string]interface{}{
 			"procedure_name": procName,
 			"type":           "PROCEDURE",
 		}
-		
+
 		procInfo = append(procInfo, info)
 	}
-	
+
 	bar.Finish()
 	fmt.Println()
-	
+
 	// Format and display results
 	return i.formatSchemaResults(procInfo)
 }
@@ -269,22 +269,22 @@ func (i *Introspector) processSchemaFunctions(filter string) error {
 		fmt.Printf("Functions are not supported by %s driver\n", i.connection.Driver)
 		return nil
 	}
-	
+
 	functions, err := i.getFunctions()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve functions: %w", err)
 	}
-	
+
 	// Filter functions if filter is provided
 	if filter != "" {
 		functions = filterNames(functions, filter)
 	}
-	
+
 	if len(functions) == 0 {
 		fmt.Println("No functions found")
 		return nil
 	}
-	
+
 	// Create progress bar
 	bar := progressbar.NewOptions(
 		len(functions),
@@ -292,23 +292,23 @@ func (i *Introspector) processSchemaFunctions(filter string) error {
 		progressbar.OptionSetWidth(50),
 		progressbar.OptionShowCount(),
 	)
-	
+
 	// Get detailed function information
 	var funcInfo []map[string]interface{}
 	for _, funcName := range functions {
 		bar.Add(1)
-		
+
 		info := map[string]interface{}{
 			"function_name": funcName,
 			"type":          "FUNCTION",
 		}
-		
+
 		funcInfo = append(funcInfo, info)
 	}
-	
+
 	bar.Finish()
 	fmt.Println()
-	
+
 	// Format and display results
 	return i.formatSchemaResults(funcInfo)
 }
@@ -318,16 +318,16 @@ func (i *Introspector) formatSchemaResults(results []map[string]interface{}) err
 	if len(results) == 0 {
 		return nil
 	}
-	
+
 	// Convert to database.ExecutionResult format
 	var columns []string
 	var rows [][]interface{}
-	
+
 	// Get column names from first result
 	for key := range results[0] {
 		columns = append(columns, key)
 	}
-	
+
 	// Convert data to rows
 	for _, result := range results {
 		var row []interface{}
@@ -336,13 +336,13 @@ func (i *Introspector) formatSchemaResults(results []map[string]interface{}) err
 		}
 		rows = append(rows, row)
 	}
-	
+
 	// Create execution result
 	execResult := &database.ExecutionResult{
 		Columns: columns,
 		Rows:    rows,
 	}
-	
+
 	// Format and display
 	return i.formatter.FormatResult(execResult)
 }
@@ -351,13 +351,13 @@ func (i *Introspector) formatSchemaResults(results []map[string]interface{}) err
 func filterNames(names []string, filter string) []string {
 	var filtered []string
 	filterLower := strings.ToLower(filter)
-	
+
 	for _, name := range names {
 		if strings.HasPrefix(strings.ToLower(name), filterLower) {
 			filtered = append(filtered, name)
 		}
 	}
-	
+
 	return filtered
 }
 
@@ -388,7 +388,7 @@ func (i *Introspector) supportsFunctions() bool {
 // getStoredProcedures retrieves stored procedures (database-specific)
 func (i *Introspector) getStoredProcedures() ([]string, error) {
 	var query string
-	
+
 	switch i.connection.Driver {
 	case "postgres":
 		query = `SELECT routine_name FROM information_schema.routines 
@@ -403,14 +403,14 @@ func (i *Introspector) getStoredProcedures() ([]string, error) {
 	default:
 		return nil, fmt.Errorf("stored procedures not supported for driver: %s", i.connection.Driver)
 	}
-	
+
 	return i.executeStringQuery(query)
 }
 
 // getFunctions retrieves functions (database-specific)
 func (i *Introspector) getFunctions() ([]string, error) {
 	var query string
-	
+
 	switch i.connection.Driver {
 	case "postgres":
 		query = `SELECT routine_name FROM information_schema.routines 
@@ -425,7 +425,7 @@ func (i *Introspector) getFunctions() ([]string, error) {
 	default:
 		return nil, fmt.Errorf("functions not supported for driver: %s", i.connection.Driver)
 	}
-	
+
 	return i.executeStringQuery(query)
 }
 
@@ -433,17 +433,17 @@ func (i *Introspector) getFunctions() ([]string, error) {
 func (i *Introspector) processDrivers(filter string) error {
 	// Get supported drivers from the database package
 	drivers := database.GetSupportedDrivers()
-	
+
 	// Filter drivers if filter is provided
 	if filter != "" {
 		drivers = filterNames(drivers, filter)
 	}
-	
+
 	if len(drivers) == 0 {
 		fmt.Println("No drivers found")
 		return nil
 	}
-	
+
 	// Create progress bar
 	bar := progressbar.NewOptions(
 		len(drivers),
@@ -451,18 +451,18 @@ func (i *Introspector) processDrivers(filter string) error {
 		progressbar.OptionSetWidth(50),
 		progressbar.OptionShowCount(),
 	)
-	
+
 	// Get detailed driver information
 	var driverInfo []map[string]interface{}
 	for _, driverName := range drivers {
 		bar.Add(1)
-		
+
 		info := map[string]interface{}{
 			"driver_name": driverName,
-			"type":        "DATABASE_DRIVER",
+			"type":        "DRIVER",
 			"status":      "AVAILABLE",
 		}
-		
+
 		// Add driver-specific information
 		switch driverName {
 		case "postgres":
@@ -481,13 +481,13 @@ func (i *Introspector) processDrivers(filter string) error {
 			info["description"] = "Unknown driver"
 			info["connection_example"] = "N/A"
 		}
-		
+
 		driverInfo = append(driverInfo, info)
 	}
-	
+
 	bar.Finish()
 	fmt.Println()
-	
+
 	// Format and display results
 	return i.formatSchemaResults(driverInfo)
 }
@@ -499,7 +499,7 @@ func (i *Introspector) executeStringQuery(query string) ([]string, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var results []string
 	for rows.Next() {
 		var name string
@@ -508,7 +508,7 @@ func (i *Introspector) executeStringQuery(query string) ([]string, error) {
 		}
 		results = append(results, name)
 	}
-	
+
 	return results, rows.Err()
 }
 
@@ -523,13 +523,13 @@ func IsSchemaCommand(line string) bool {
 		"@schema-functions",
 		"@drivers",
 	}
-	
+
 	for _, cmd := range schemaCommands {
 		if strings.HasPrefix(trimmed, cmd) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -537,19 +537,19 @@ func IsSchemaCommand(line string) bool {
 func ParseSchemaCommand(line string) (string, string) {
 	trimmed := strings.TrimSpace(line)
 	parts := strings.Fields(trimmed)
-	
+
 	if len(parts) == 0 {
 		return "", ""
 	}
-	
+
 	command := parts[0]
 	filter := ""
-	
+
 	// Look for filter parameter
 	if len(parts) > 1 {
 		// Remove quotes if present
 		filter = strings.Trim(parts[1], `"'`)
 	}
-	
+
 	return command, filter
 }

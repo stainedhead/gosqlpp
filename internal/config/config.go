@@ -11,6 +11,7 @@ import (
 // Connection represents a database connection configuration
 type Connection struct {
 	Driver           string `yaml:"driver"`
+	Notes            string `yaml:"notes,omitempty"`
 	ConnectionString string `yaml:"connection-string"`
 }
 
@@ -139,6 +140,14 @@ func GetConfigPath() string {
 	return filepath.Join(".", ".sqlppconfig")
 }
 
+// ConnectionInfo represents connection information for display
+type ConnectionInfo struct {
+	Name      string `json:"name" yaml:"name"`
+	Driver    string `json:"driver" yaml:"driver"`
+	Notes     string `json:"notes" yaml:"notes"`
+	IsDefault bool   `json:"is_default" yaml:"is_default"`
+}
+
 // GetConnectionNames returns a slice of all connection names
 func (c *Config) GetConnectionNames() []string {
 	names := make([]string, 0, len(c.Connections))
@@ -146,4 +155,19 @@ func (c *Config) GetConnectionNames() []string {
 		names = append(names, name)
 	}
 	return names
+}
+
+// GetConnectionInfos returns detailed information about all connections
+func (c *Config) GetConnectionInfos() []ConnectionInfo {
+	infos := make([]ConnectionInfo, 0, len(c.Connections))
+	for name, conn := range c.Connections {
+		info := ConnectionInfo{
+			Name:      name,
+			Driver:    conn.Driver,
+			Notes:     conn.Notes,
+			IsDefault: name == c.DefaultConnection,
+		}
+		infos = append(infos, info)
+	}
+	return infos
 }

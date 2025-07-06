@@ -1,0 +1,21 @@
+default-connection: "main"
+end-on-error: false
+output: "table"
+
+connections:
+  main:
+    driver: "sqlite3"
+    connection-string: "test.db"
+    notes: "Local SQLite database for testing"
+  postgres:
+    driver: "postgres"
+    connection-string: "postgres://user:password@localhost/dbname?sslmode=disable"
+    notes: "PostgreSQL development database"
+  mysql:
+    driver: "mysql"
+    connection-string: "username:password@tcp(127.0.0.1:3306)/database_name"
+    notes: "MySQL production database"
+  sqlserver:
+    driver: "sqlserver"
+    connection-string: "server=localhost;user id=userdb;password=userpwd;port=1433"
+    notes: "SQL Server enterprise database"

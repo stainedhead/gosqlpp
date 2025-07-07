@@ -4,7 +4,7 @@ The earlier version supported #include and #define functionality, allowing the u
 
 This application will support multiple database backends, and will try to support shared features such as schema lookup and @functions that drive short-hand execution of SQL execution.
 
-the name of the application will be sqlpp, and the configuration file for the application will be .sqlppconfig that will be kept in the working or executoion directory when the application is run.
+the name of the application will be sqlpp, and the configuration file for the application will be .sqlppconfig that will be kept in the same directory as the sqlpp executable when the application is run.
 
 #### Added documentation
 The following URLs are documentation that will be helpful in your processing.  Please review this documentation, and the files these may link to, and use them as context in your reasoning and planning.

@@ -33,11 +33,31 @@ func DefaultConfig() *Config {
 	}
 }
 
-// LoadConfig loads configuration from .sqlppconfig file in the current directory
+// configDirFunc is a function that returns the directory to look for config files
+// It can be overridden for testing purposes
+var configDirFunc = getExecutableDir
+
+// getExecutableDir returns the directory where the executable is located
+func getExecutableDir() (string, error) {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(execPath), nil
+}
+
+// LoadConfig loads configuration from .sqlppconfig file in the executable's directory
 func LoadConfig() (*Config, error) {
 	config := DefaultConfig()
 
-	configPath := ".sqlppconfig"
+	// Get the directory to look for config files
+	configDir, err := configDirFunc()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config directory: %w", err)
+	}
+
+	configPath := filepath.Join(configDir, ".sqlppconfig")
+
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// No config file exists, return default config
 		return config, nil
@@ -60,14 +80,21 @@ func LoadConfig() (*Config, error) {
 	return config, nil
 }
 
-// SaveConfig saves the configuration to .sqlppconfig file
+// SaveConfig saves the configuration to .sqlppconfig file in the executable's directory
 func (c *Config) SaveConfig() error {
 	data, err := yaml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	configPath := ".sqlppconfig"
+	// Get the directory to save config files
+	configDir, err := configDirFunc()
+	if err != nil {
+		return fmt.Errorf("failed to get config directory: %w", err)
+	}
+
+	configPath := filepath.Join(configDir, ".sqlppconfig")
+
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
@@ -135,9 +162,15 @@ func (c *Config) GetConnection(name string) (Connection, error) {
 	return conn, nil
 }
 
-// GetConfigPath returns the path to the configuration file
+// GetConfigPath returns the path to the configuration file in the executable's directory
 func GetConfigPath() string {
-	return filepath.Join(".", ".sqlppconfig")
+	configDir, err := configDirFunc()
+	if err != nil {
+		// Fallback to current directory if we can't determine config directory
+		return filepath.Join(".", ".sqlppconfig")
+	}
+
+	return filepath.Join(configDir, ".sqlppconfig")
 }
 
 // ConnectionInfo represents connection information for display

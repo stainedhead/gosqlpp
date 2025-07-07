@@ -1,26 +1,25 @@
 package config
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestDefaultConfig(t *testing.T) {
 	config := DefaultConfig()
-	
+
 	if config.DefaultConnection != "" {
 		t.Errorf("Expected empty default connection, got %s", config.DefaultConnection)
 	}
-	
+
 	if config.EndOnError != false {
 		t.Errorf("Expected EndOnError to be false, got %t", config.EndOnError)
 	}
-	
+
 	if config.Output != "table" {
 		t.Errorf("Expected output to be 'table', got %s", config.Output)
 	}
-	
+
 	if config.Connections == nil {
 		t.Error("Expected connections map to be initialized")
 	}
@@ -159,11 +158,11 @@ func TestConfigValidation(t *testing.T) {
 			errorMsg:    "no default-connection specified",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("Expected error containing '%s', got nil", tt.errorMsg)
@@ -195,7 +194,7 @@ func TestGetConnection(t *testing.T) {
 			},
 		},
 	}
-	
+
 	// Test getting default connection
 	conn, err := config.GetConnection("")
 	if err != nil {
@@ -204,7 +203,7 @@ func TestGetConnection(t *testing.T) {
 	if conn.Driver != "sqlite3" {
 		t.Errorf("Expected driver 'sqlite3', got %s", conn.Driver)
 	}
-	
+
 	// Test getting named connection
 	conn, err = config.GetConnection("test")
 	if err != nil {
@@ -213,7 +212,7 @@ func TestGetConnection(t *testing.T) {
 	if conn.Driver != "postgres" {
 		t.Errorf("Expected driver 'postgres', got %s", conn.Driver)
 	}
-	
+
 	// Test getting non-existent connection
 	_, err = config.GetConnection("missing")
 	if err == nil {
@@ -222,29 +221,27 @@ func TestGetConnection(t *testing.T) {
 }
 
 func TestLoadConfigNoFile(t *testing.T) {
-	// Change to a temporary directory
+	// Use a temporary directory for testing
 	tempDir := t.TempDir()
-	oldDir, _ := os.Getwd()
-	defer os.Chdir(oldDir)
-	os.Chdir(tempDir)
-	
+	restore := setTestConfigDir(tempDir)
+	defer restore()
+
 	config, err := LoadConfig()
 	if err != nil {
 		t.Errorf("Expected no error when config file doesn't exist, got %v", err)
 	}
-	
+
 	if config.Output != "table" {
 		t.Errorf("Expected default output 'table', got %s", config.Output)
 	}
 }
 
 func TestLoadAndSaveConfig(t *testing.T) {
-	// Change to a temporary directory
+	// Use a temporary directory for testing
 	tempDir := t.TempDir()
-	oldDir, _ := os.Getwd()
-	defer os.Chdir(oldDir)
-	os.Chdir(tempDir)
-	
+	restore := setTestConfigDir(tempDir)
+	defer restore()
+
 	// Create a test config
 	originalConfig := &Config{
 		DefaultConnection: "test",
@@ -257,35 +254,35 @@ func TestLoadAndSaveConfig(t *testing.T) {
 			},
 		},
 	}
-	
+
 	// Save config
 	err := originalConfig.SaveConfig()
 	if err != nil {
 		t.Fatalf("Failed to save config: %v", err)
 	}
-	
+
 	// Load config
 	loadedConfig, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
-	
+
 	// Compare configs
 	if loadedConfig.DefaultConnection != originalConfig.DefaultConnection {
-		t.Errorf("DefaultConnection mismatch: expected %s, got %s", 
+		t.Errorf("DefaultConnection mismatch: expected %s, got %s",
 			originalConfig.DefaultConnection, loadedConfig.DefaultConnection)
 	}
-	
+
 	if loadedConfig.EndOnError != originalConfig.EndOnError {
-		t.Errorf("EndOnError mismatch: expected %t, got %t", 
+		t.Errorf("EndOnError mismatch: expected %t, got %t",
 			originalConfig.EndOnError, loadedConfig.EndOnError)
 	}
-	
+
 	if loadedConfig.Output != originalConfig.Output {
-		t.Errorf("Output mismatch: expected %s, got %s", 
+		t.Errorf("Output mismatch: expected %s, got %s",
 			originalConfig.Output, loadedConfig.Output)
 	}
-	
+
 	testConn, exists := loadedConfig.Connections["test"]
 	if !exists {
 		t.Error("Test connection not found in loaded config")
@@ -300,10 +297,26 @@ func TestLoadAndSaveConfig(t *testing.T) {
 }
 
 func TestGetConfigPath(t *testing.T) {
-	expected := filepath.Join(".", ".sqlppconfig")
+	// Test with a temporary directory
+	tempDir := t.TempDir()
+	restore := setTestConfigDir(tempDir)
+	defer restore()
+
+	expected := filepath.Join(tempDir, ".sqlppconfig")
 	actual := GetConfigPath()
-	
+
 	if actual != expected {
 		t.Errorf("Expected config path %s, got %s", expected, actual)
+	}
+}
+
+// setTestConfigDir sets a custom config directory for testing
+func setTestConfigDir(dir string) func() {
+	original := configDirFunc
+	configDirFunc = func() (string, error) {
+		return dir, nil
+	}
+	return func() {
+		configDirFunc = original
 	}
 }

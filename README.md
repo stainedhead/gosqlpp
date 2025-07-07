@@ -51,7 +51,9 @@ sudo mv sqlpp /usr/local/bin/
 ## Quick Start
 
 ### 1. Configuration
-Create a `.sqlppconfig` file in your project directory:
+Create a `.sqlppconfig` file in the same directory as the sqlpp executable:
+
+**Important**: The configuration file is loaded from the directory where the sqlpp executable is located, not from the current working directory. This ensures consistent configuration even when sqlpp is run as a child process or from different directories.
 
 ```yaml
 default-connection: "main"
@@ -292,6 +294,14 @@ sqlpp/
 ```
 
 ## Configuration Reference
+
+### Configuration File Location
+
+The `.sqlppconfig` file must be located in the same directory as the sqlpp executable. This design ensures:
+
+- **Consistency**: Configuration remains the same regardless of current working directory
+- **Child Process Safety**: When sqlpp is executed as a child process (e.g., by MCP servers), it uses its own configuration
+- **Deployment Simplicity**: The executable and its configuration travel together
 
 ### Connection Types
 

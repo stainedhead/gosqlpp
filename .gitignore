@@ -7,6 +7,9 @@
 *.so
 *.dylib
 gosqlpp-mcp-server
+sqlpp
+gosqlpp
+
 .bin/
 .sqlppconfig 
 

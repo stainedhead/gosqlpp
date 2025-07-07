@@ -78,6 +78,26 @@ func (p *Processor) ProcessStdin() error {
 	return p.executeStatements(statements)
 }
 
+// ProcessStdinText processes SQL commands from provided text (instead of reading from stdin)
+func (p *Processor) ProcessStdinText(inputText string) error {
+	// Create preprocessor and process the input text
+	prep := preprocessor.NewPreprocessor()
+	reader := strings.NewReader(inputText)
+	lines, locations, err := prep.ProcessReader(reader, "<stdin>")
+	if err != nil {
+		return fmt.Errorf("preprocessing failed for stdin: %w", err)
+	}
+
+	// Parse statements from preprocessed lines
+	statements, err := p.parseStatementsFromLines(lines, locations)
+	if err != nil {
+		return err
+	}
+
+	// Execute statements
+	return p.executeStatements(statements)
+}
+
 // ProcessDirectory processes all .sql files in a directory
 func (p *Processor) ProcessDirectory(dirPath string, newerThan time.Time) error {
 	// Find all .sql files

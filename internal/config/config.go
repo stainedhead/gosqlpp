@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -72,8 +73,8 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	// Validate configuration
-	if err := config.Validate(); err != nil {
+	// Validate basic configuration only (not connections)
+	if err := config.ValidateBasic(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
@@ -104,6 +105,14 @@ func (c *Config) SaveConfig() error {
 
 // Validate checks if the configuration is valid
 func (c *Config) Validate() error {
+	if err := c.ValidateBasic(); err != nil {
+		return err
+	}
+	return c.ValidateConnections()
+}
+
+// ValidateBasic validates basic configuration that doesn't require database connections
+func (c *Config) ValidateBasic() error {
 	// Validate output format
 	validOutputs := map[string]bool{
 		"table": true,
@@ -116,6 +125,11 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid output format '%s', must be one of: table, json, yaml, csv", c.Output)
 	}
 
+	return nil
+}
+
+// ValidateConnections validates database connection configuration
+func (c *Config) ValidateConnections() error {
 	// Validate connections
 	if len(c.Connections) == 0 {
 		return fmt.Errorf("no database connections defined")
@@ -203,4 +217,39 @@ func (c *Config) GetConnectionInfos() []ConnectionInfo {
 		infos = append(infos, info)
 	}
 	return infos
+}
+
+// RequiresDatabaseConnection checks if the given input requires a database connection
+func RequiresDatabaseConnection(input string) bool {
+	// Commands that don't require database connections
+	connectionlessCommands := []string{
+		"@drivers",
+	}
+
+	lines := strings.Split(input, "\n")
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+
+		// Skip empty lines and comments
+		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "--") {
+			continue
+		}
+
+		// Check if this line is a connectionless command
+		isConnectionless := false
+		for _, cmd := range connectionlessCommands {
+			if strings.HasPrefix(trimmedLine, cmd) {
+				isConnectionless = true
+				break
+			}
+		}
+
+		// If we find any line that requires a connection, return true
+		if !isConnectionless {
+			return true
+		}
+	}
+
+	// All non-empty, non-comment lines are connectionless commands
+	return false
 }

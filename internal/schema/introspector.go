@@ -17,6 +17,7 @@ type Introspector struct {
 }
 
 // NewIntrospector creates a new schema introspector
+// For commands that don't require a database connection (like @drivers), conn can be nil
 func NewIntrospector(conn *database.Connection, formatter *output.Formatter) *Introspector {
 	return &Introspector{
 		connection: conn,
@@ -26,6 +27,13 @@ func NewIntrospector(conn *database.Connection, formatter *output.Formatter) *In
 
 // ProcessSchemaCommand processes @schema-* commands
 func (i *Introspector) ProcessSchemaCommand(command, filter string) error {
+	// Check if this command requires a database connection
+	requiresConnection := command != "@drivers"
+
+	if requiresConnection && i.connection == nil {
+		return fmt.Errorf("command %s requires a database connection", command)
+	}
+
 	switch command {
 	case "@schema-all":
 		return i.processSchemaAll(filter)

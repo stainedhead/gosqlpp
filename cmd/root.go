@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"gosqlpp/internal/config"
@@ -214,8 +216,21 @@ func runSqlpp(cmd *cobra.Command, args []string) error {
 		effectiveConfig.EndOnError = false
 	}
 
-	// Validate effective configuration
-	if err := effectiveConfig.Validate(); err != nil {
+	// Validate basic configuration (not connections yet)
+	if err := effectiveConfig.ValidateBasic(); err != nil {
+		return fmt.Errorf("configuration error: %w", err)
+	}
+
+	// Create output formatter early (needed for connectionless commands)
+	formatter := output.NewFormatter(effectiveConfig.Output, os.Stdout)
+
+	// For stdin input, we need to check if connections are required
+	if isStdinInput {
+		return handleStdinWithOptionalConnection(&effectiveConfig, formatter)
+	}
+
+	// For file and directory processing, we need database connections
+	if err := effectiveConfig.ValidateConnections(); err != nil {
 		return fmt.Errorf("configuration error: %w", err)
 	}
 
@@ -242,7 +257,7 @@ func runSqlpp(cmd *cobra.Command, args []string) error {
 
 	// Create executor and formatter
 	executor := database.NewExecutor(conn)
-	formatter := output.NewFormatter(effectiveConfig.Output, os.Stdout)
+	formatter = output.NewFormatter(effectiveConfig.Output, os.Stdout)
 	introspector := schema.NewIntrospector(conn, formatter)
 
 	// Create file processor
@@ -267,4 +282,104 @@ func runSqlpp(cmd *cobra.Command, args []string) error {
 // GetConfig returns the loaded configuration (for use by other packages)
 func GetConfig() *config.Config {
 	return cfg
+}
+
+// handleStdinWithOptionalConnection handles stdin input with optional database connection
+func handleStdinWithOptionalConnection(cfg *config.Config, formatter *output.Formatter) error {
+	// Read all stdin input first to determine if we need a database connection
+	var input strings.Builder
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		line := scanner.Text()
+		input.WriteString(line)
+		input.WriteString("\n")
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading from stdin: %w", err)
+	}
+
+	inputText := input.String()
+
+	// Check if the input requires a database connection
+	if config.RequiresDatabaseConnection(inputText) {
+		// Validate connections since we need them
+		if err := cfg.ValidateConnections(); err != nil {
+			return fmt.Errorf("configuration error: %w", err)
+		}
+
+		// Create database manager and establish connection
+		dbManager := database.NewManager()
+		defer dbManager.CloseAll()
+
+		// Get connection configuration
+		connConfig, err := cfg.GetConnection(cfg.DefaultConnection)
+		if err != nil {
+			return fmt.Errorf("connection error: %w", err)
+		}
+
+		// Connect to database
+		if err := dbManager.Connect(cfg.DefaultConnection, connConfig); err != nil {
+			return fmt.Errorf("failed to connect to database: %w", err)
+		}
+
+		// Get database connection
+		conn, err := dbManager.GetConnection(cfg.DefaultConnection)
+		if err != nil {
+			return fmt.Errorf("failed to get database connection: %w", err)
+		}
+
+		// Create executor and introspector with database connection
+		executor := database.NewExecutor(conn)
+		introspector := schema.NewIntrospector(conn, formatter)
+
+		// Create file processor
+		processor := file.NewProcessor(executor, formatter, introspector, cfg.EndOnError)
+
+		// Process the input
+		fmt.Printf("Processing input from stdin\n")
+		return processor.ProcessStdinText(inputText)
+	} else {
+		// No database connection needed, create introspector without connection
+		introspector := schema.NewIntrospector(nil, formatter)
+
+		// Handle connectionless commands directly
+		fmt.Printf("Processing input from stdin\n")
+		return processConnectionlessInput(inputText, introspector)
+	}
+}
+
+// processConnectionlessInput processes input that doesn't require database connections
+func processConnectionlessInput(inputText string, introspector *schema.Introspector) error {
+	lines := strings.Split(inputText, "\n")
+
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+
+		// Skip empty lines and comments
+		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "--") {
+			continue
+		}
+
+		// Handle schema commands
+		if strings.HasPrefix(trimmedLine, "@") {
+			// Parse command and filter
+			parts := strings.Fields(trimmedLine)
+			command := parts[0]
+			filter := ""
+			if len(parts) > 1 {
+				// Join remaining parts as filter (removing quotes if present)
+				filter = strings.Join(parts[1:], " ")
+				filter = strings.Trim(filter, "\"")
+			}
+
+			if err := introspector.ProcessSchemaCommand(command, filter); err != nil {
+				return fmt.Errorf("error processing command %s: %w", command, err)
+			}
+		} else {
+			return fmt.Errorf("command requires database connection: %s", trimmedLine)
+		}
+	}
+
+	return nil
 }

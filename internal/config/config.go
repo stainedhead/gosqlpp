@@ -9,6 +9,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ConfigFileName is the name of the configuration file
+const ConfigFileName = ".sqlppconfig"
+
 // Connection represents a database connection configuration
 type Connection struct {
 	Driver           string `yaml:"driver"`
@@ -34,33 +37,64 @@ func DefaultConfig() *Config {
 	}
 }
 
-// configDirFunc is a function that returns the directory to look for config files
+// configDirFunc is a function that returns the directories to look for config files
 // It can be overridden for testing purposes
-var configDirFunc = getExecutableDir
+var configDirFunc = getConfigSearchDirs
 
-// getExecutableDir returns the directory where the executable is located
-func getExecutableDir() (string, error) {
-	execPath, err := os.Executable()
-	if err != nil {
-		return "", err
+// getConfigSearchDirs returns a list of directories to search for config files, in order of preference
+// This ensures compatibility with both direct execution and MCP client child process usage
+func getConfigSearchDirs() ([]string, error) {
+	var dirs []string
+
+	// 1. Current working directory (for MCP client child process usage)
+	if cwd, err := os.Getwd(); err == nil {
+		dirs = append(dirs, cwd)
 	}
-	return filepath.Dir(execPath), nil
+
+	// 2. Executable directory (original behavior for direct execution)
+	if execPath, err := os.Executable(); err == nil {
+		execDir := filepath.Dir(execPath)
+		dirs = append(dirs, execDir)
+	}
+
+	// 3. User home directory (fallback)
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		dirs = append(dirs, homeDir)
+	}
+
+	if len(dirs) == 0 {
+		return nil, fmt.Errorf("could not determine any config search directories")
+	}
+
+	return dirs, nil
 }
 
-// LoadConfig loads configuration from .sqlppconfig file in the executable's directory
+// LoadConfig loads configuration from ConfigFileName file, searching multiple directories
+// Searches in order: current working directory, executable directory, user home directory
 func LoadConfig() (*Config, error) {
 	config := DefaultConfig()
 
-	// Get the directory to look for config files
-	configDir, err := configDirFunc()
+	// Get the directories to search for config files
+	configDirs, err := configDirFunc()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config directory: %w", err)
+		return nil, fmt.Errorf("failed to get config search directories: %w", err)
 	}
 
-	configPath := filepath.Join(configDir, ".sqlppconfig")
+	// Search for config file in each directory
+	var configPath string
+	var configFound bool
 
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		// No config file exists, return default config
+	for _, dir := range configDirs {
+		candidatePath := filepath.Join(dir, ConfigFileName)
+		if _, err := os.Stat(candidatePath); err == nil {
+			configPath = candidatePath
+			configFound = true
+			break
+		}
+	}
+
+	if !configFound {
+		// No config file exists in any search directory, return default config
 		return config, nil
 	}
 
@@ -81,20 +115,22 @@ func LoadConfig() (*Config, error) {
 	return config, nil
 }
 
-// SaveConfig saves the configuration to .sqlppconfig file in the executable's directory
+// SaveConfig saves the configuration to ConfigFileName file in the first available directory
 func (c *Config) SaveConfig() error {
 	data, err := yaml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// Get the directory to save config files
-	configDir, err := configDirFunc()
+	// Get the directories to save config files
+	configDirs, err := configDirFunc()
 	if err != nil {
-		return fmt.Errorf("failed to get config directory: %w", err)
+		return fmt.Errorf("failed to get config directories: %w", err)
 	}
 
-	configPath := filepath.Join(configDir, ".sqlppconfig")
+	// Use the first directory (current working directory if available)
+	configDir := configDirs[0]
+	configPath := filepath.Join(configDir, ConfigFileName)
 
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
@@ -176,15 +212,25 @@ func (c *Config) GetConnection(name string) (Connection, error) {
 	return conn, nil
 }
 
-// GetConfigPath returns the path to the configuration file in the executable's directory
+// GetConfigPath returns the path to the configuration file, searching multiple directories
+// Returns the path of the first existing config file, or the path in the first search directory if none exist
 func GetConfigPath() string {
-	configDir, err := configDirFunc()
+	configDirs, err := configDirFunc()
 	if err != nil {
-		// Fallback to current directory if we can't determine config directory
-		return filepath.Join(".", ".sqlppconfig")
+		// Fallback to current directory if we can't determine config directories
+		return filepath.Join(".", ConfigFileName)
 	}
 
-	return filepath.Join(configDir, ".sqlppconfig")
+	// Search for existing config file
+	for _, dir := range configDirs {
+		configPath := filepath.Join(dir, ConfigFileName)
+		if _, err := os.Stat(configPath); err == nil {
+			return configPath
+		}
+	}
+
+	// If no existing config file found, return path in first directory
+	return filepath.Join(configDirs[0], ConfigFileName)
 }
 
 // ConnectionInfo represents connection information for display

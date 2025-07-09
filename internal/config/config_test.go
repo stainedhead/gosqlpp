@@ -302,7 +302,7 @@ func TestGetConfigPath(t *testing.T) {
 	restore := setTestConfigDir(tempDir)
 	defer restore()
 
-	expected := filepath.Join(tempDir, ".sqlppconfig")
+	expected := filepath.Join(tempDir, ConfigFileName)
 	actual := GetConfigPath()
 
 	if actual != expected {
@@ -313,8 +313,8 @@ func TestGetConfigPath(t *testing.T) {
 // setTestConfigDir sets a custom config directory for testing
 func setTestConfigDir(dir string) func() {
 	original := configDirFunc
-	configDirFunc = func() (string, error) {
-		return dir, nil
+	configDirFunc = func() ([]string, error) {
+		return []string{dir}, nil
 	}
 	return func() {
 		configDirFunc = original
